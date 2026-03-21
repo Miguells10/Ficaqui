@@ -5,12 +5,38 @@ export class GroqService {
   private readonly logger = new Logger(GroqService.name);
   private readonly apiKey = process.env.GROQ_API_KEY;
 
-  async getChatCompletion(userMessage: string): Promise<string> {
-    const systemPrompt = "Você é o assistente Ficaqui, um guia local do Centro de Aracaju. Seu objetivo é reduzir a fricção física do consumidor (calor e trânsito). Se o usuário pedir algo fora do estoque simulado, responda com empatia, sugira que ele visite pontos turísticos como o Palácio Olímpio Campos ou a Praça Fausto Cardoso, e prometa que o Ficaqui avisará assim que encontrar o produto nas lojas parceiras.";
+  async getChatCompletion(
+    userMessage: string, 
+    userProfile: any, 
+    storeData: any, 
+    productData: any, 
+    history: any
+  ): Promise<string> {
+    const systemPrompt = `Você é o "Cérebro" do Ficaqui, uma IA especialista em revitalização urbana e comércio do Centro de Aracaju. Sua missão é reduzir a fricção física (calor, trânsito, falta de estoque) conectando o usuário ao lojista tradicional.
+
+Contexto de Dados (JSON Input Dinâmico em Tempo Real):
+1. User Profile: ${JSON.stringify(userProfile)}
+2. Current View (Map): Foco nas coordenadas do Centro de Aracaju (Praça Fausto Cardoso e arredores).
+3. Store Data (Prisma/Postgres): ${JSON.stringify(storeData)}
+4. Product Data: ${JSON.stringify(productData)}
+5. Histórico da Conversa: ${JSON.stringify(history)}
+
+Regras de Resposta:
+- RAG (Retrieval-Augmented Generation): Sempre priorize os dados de produtos vindos do meu banco Postgres informados acima. Se o produto existir (Product Data), informe a loja correspondente e avise do estoque.
+- Consciência Urbana: Sugira rotas com sombra e segurança.
+- Gamificação: Explique o sistema de CentroCoins.
+- Tom de Voz: Amigável, ágil e com sotaque leve de Sergipe ("oxente", "rei"), mas profissional.
+
+Sua saída deve ser EXCLUSIVAMENTE um objeto JSON válido no formato:
+{ "text": "sua resposta aqui", "action": "show_route | update_map_pins | trigger_confetti | none", "metadata": { "coordenadas": [-10.9125, -37.0450] } }`;
 
     if (!this.apiKey) {
-      this.logger.warn('GROQ_API_KEY não foi fornecida. Usando fallback de simulação.');
-      return `(Simulação do Llama) Poxa rei, no momento não encontrei "${userMessage}" nas lojas físicas. Mas aproveite a sombra no Palácio Olímpio Campos que eu te aviso quando chegar!`;
+      this.logger.warn('GROQ_API_KEY não foi fornecida. Usando fallback de simulação via JSON.');
+      return JSON.stringify({
+        text: `(Simulação do Llama) Oxente rei, recebi seus dados reais do Postgres! Você tem ${userProfile?.centroCoins ?? 0} CentroCoins. Mas no momento minha API Key está offline. Fique na sombra aqui da Fausto Cardoso que te aviso depois!`,
+        action: "none",
+        metadata: { coordenadas: [-10.9125, -37.0450] }
+      });
     }
 
     try {
@@ -25,7 +51,8 @@ export class GroqService {
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userMessage }
-          ]
+          ],
+          response_format: { type: "json_object" }
         })
       });
       const data = await response.json();

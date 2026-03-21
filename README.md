@@ -1,59 +1,95 @@
-# Ficaqui MVP 🚀
+# Ficaqui VIP (Hackathon MVP) 🚀
 
-O Ficaqui MVP foi projetado como um Monorepo **Mobile-First** escalável. A infraestrutura possui separação nativa de Frontend (React + Vite), Backend (NestJS + Prisma ORM) e Banco de Dados (PostgreSQL).
-
-Tudo foi orquestrado para rodar com **apenas um único comando via Docker Compose**!
-
-## Requisitos Iniciais
-- Docker Desktop (e Docker Compose) instalados.
-- Uma [chave da API do Groq](https://console.groq.com/keys) (Opcional. Sem ela, o chat funciona em modo Offline/Simulação no backend).
+O **Ficaqui** foi projetado como um sistema "Monorepo Fullstack Mobile-First" altamente escalável. O foco arquitetural do sistema é entregar estabilidade em tempo real, conectando lojistas tradicionais a compradores locais com redução de atrito (calor, trânsito) através da assistência de um LLM Cérebro (Retrieval-Augmented Generation).
 
 ---
 
-## 🏗️ Como Subir Todos os Serviços de Uma Vez
+## 🛠 Tech Stack e Infraestrutura
 
-Se você possui o Docker rodando na sua máquina, a inicialização ocorre de forma automática. O Docker Compose vai:
-1. Baixar e ligar o PostgreSQL.
-2. Executar as dependências do Backend, gerar o Prisma Client e aplicar as tabelas (CheckIn, ChatMessage, User).
-3. Levantar o Frontend e amarrá-lo ao servidor da API.
+- **Frontend:** React + Vite, Gamificação (Framer Motion, CentroCoins, QR Scanner).
+- **Backend API:** NestJS 11 robusto (TypeScript) servindo rotas seguras e Swagger.
+- **Banco de Dados:** PostgreSQL 15 integrado.
+- **ORM:** Prisma 6.4 (Conexão tipada e controle de Migrations).
+- **Orquestração e Deploy:** Docker e Docker Compose (Roda tudo através de contêineres e imagens).
 
-Abra o terminal **na raiz do seu projeto (`Ficaqui/`)** e rode:
+---
 
+## 🏗️ 1. Como Rodar Tudo Simultaneamente (Build & Start)
+
+O sistema foi unificado para orquestração automática com um simples comando:
+
+Abra o seu terminal **na raiz do seu projeto (`Ficaqui/`)** e orquestre o banco e o servidor de uma vez:
 ```bash
 docker-compose up --build -d
 ```
+* **O que acontece?** O Docker fará o build do Frontend (`:5173`), do Backend (`:3000`), do Banco de Dados Postgres (`:5432`) e instalará automaticamente todas dependências das pastas remotas. O parâmetro `-d` garante que rodem em "Detached Mode" (background), deixando seu terminal livre.
 
-> **Dica:** O `--build` garante que suas imagens Docker leiam o código-fonte mais recente. O `-d` libera seu terminal para que os processos rodem limpos em background!
-
----
-
-## 🎯 Onde Acessar Cada App?
-
-Após o comando acima terminar (leva 1 minuto na primeira vez), tudo estará ao vivo:
-
-### 📱 1. O App Ficaqui (Frontend React + Gamificação)
-Acesse pelo seu navegador:
-👉 [http://localhost:5173](http://localhost:5173)
-
-### 🔥 2. Documentação da API (NestJS Swagger)
-Visualize os endpoints disponíveis e teste o banco de dados graficamente:
-👉 [http://localhost:3000/api](http://localhost:3000/api)
-
-### 🗄️ 3. O Banco de Dados (Postgres)
-Ele roda no host local na porta `5432`.
-Credentials: 
-* User: `ficaqui`
-* Password: `ficaqui_password`
-* DB: `ficaqui_db`
+#### 🌐 Onde testar?
+- **O Aplicativo Visual:** [http://localhost:5173](http://localhost:5173)
+- **Painel da API do Ficaqui (Swagger):** [http://localhost:3000/api](http://localhost:3000/api)
 
 ---
 
-## ⚙️ E a Chave do Groq/Llama? (Opcional)
+## 🛑 2. Parando e Apagando Containers (Stop & Remove)
 
-Se quiser usar a IA real da Groq, basta abrir o seu terminal *antes* de rodar o compose e exportar a variável, ou criar um arquivo `.env` puro **na raiz do seu projeto** (junto ao docker-compose.yml) com a linha:
+Para desligar o servidor, liberar as portas e resetar as instâncias do Docker Compose atual, rode na raiz do projeto:
 
-```env
-GROQ_API_KEY="gsk_SuaChaveDaAPI"
+- Desligar sem perder o banco (Parar):
+  ```bash
+  docker-compose stop
+  ```
+- Desligar e destruir instâncias ativas do docker (Mas mantendo o Volume/dados do banco sãos e salvos):
+  ```bash
+  docker-compose down
+  ```
+- **Apagar TUDO (Resetar Geral inclusive os dados e a memória do Postgres)**:
+  ```bash
+  docker-compose down -v
+  ```
+
+---
+
+## 🗄️ 3. Comandos do Banco de Dados e Prisma
+
+O Ficaqui depende de Modelos como `User`, `CheckIn`, `ChatMessage`, `Store` e `Product`. Para manipular e inspecionar essas tabelas dinâmicas usadas pelo LLM "Cérebro" para recomendar lojas, utilize os comandos do Prisma executados DENTRO do seu container de Backend ou acessando a rota dele.
+
+Para esses comandos, recomendamos abrir um terminal na pasta do `backend/`:
+```bash
+cd backend
 ```
 
-O `docker-compose` puxará essa variável automaticamente e a inserirá direto no container blindado do seu Backend NestJS. Mágica pura!
+#### A. Inspecionar e Cadastrar Dados Graficamente (Prisma Studio)
+Abra uma interface bonita no navegador para cadastrar produtos, saldos de usuários e estoques manualmente:
+```bash
+npx prisma studio
+```
+> *(Abra http://localhost:5555 para visualizar. Ideal para adicionar as Panelas da "Loja do Seu João" em tempo real na aba Products).*
+
+#### B. Atualizar e Sincronizar o Banco (Migrate & Push)
+Caso você crie novos *models* no arquivo `backend/prisma/schema.prisma` e queira aplicar a mudança forçadamente na nuvem do PostgreSQL:
+```bash
+npx prisma db push
+```
+Ou para versionar formalmente a criação (Modo Seguro/Produção):
+```bash
+npx prisma migrate dev --name "init_tabelas_novas"
+```
+
+#### C. Resetar completamente os Dados (Wipe/Apagar)
+Caso queira jogar fora todo e qualquer dado do Hackathon e recomeçar do zero (Cuidado!):
+```bash
+npx prisma migrate reset
+```
+
+---
+
+## 🧠 Arquitetura do "Cérebro Llama" - RAG (Retrieval-Augmented Generation)
+
+O Assistente no app consome a inteligência do Llama 3 gerida pela [API da Groq](https://console.groq.com/keys).
+
+A lógica foi arquitetada de forma sigilosa no `/backend` e o Frontend apenas recebe o JSON de respostas sem expor chaves de API:
+1. O Front manda o ID do usuário e a mensagem (`"panela"`) pra `/chat`.
+2. O NestJS lê o ID e coleta o banco de dados dinamicamente usando Prisma: O contexto espacial (Lojas Próximas), seu saldo em **CentroCoins**, seu Histórico de Conversa e faz um Vector-Search rústico de quais Produtos cadastrados dão match com a palavra da mensagem.
+3. Se existe produto correspondente no banco de dados com a busca informada, o Backend avisa a Groq e ela formulará as ações que geram gatilho como `show_route` contendo o ID e metadados reativos com sotaque de Sergipe!
+
+*(Para configurar, coloque a sua `GROQ_API_KEY=xxx` num arquivo `.env` puro na raiz do projeto acompanhando de fato o seu `docker-compose.yml` e refaça o `docker-compose up --build -d` para dar hot load).*

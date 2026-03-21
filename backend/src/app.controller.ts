@@ -29,13 +29,42 @@ export class AppController {
         }
       });
 
-      // Llama Logic vs Standard Happy Path
-      let reply = '';
-      if (dto.message.toLowerCase().includes('panela')) {
-        reply = "Encontrei 3 lojas no Centro de Aracaju! A 'Loja do Seu João' tem 95% de estoque. Rota com sombra disponível. 🍳";
-      } else {
-        reply = await this.groqService.getChatCompletion(dto.message);
-      }
+      // Llama RAG Context Fetching
+      const userProfile = await this.prisma.user.findUnique({
+        where: { id: dto.userId },
+        select: { id: true, name: true, centroCoins: true }
+      });
+
+      const history = await this.prisma.chatMessage.findMany({
+        where: { userId: dto.userId },
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        select: { role: true, content: true }
+      });
+
+      // Busca de Produtos do Banco (RAG Simples usando filtro de keywords do input)
+      const keywords = dto.message.split(' ').filter(w => w.length > 3);
+      const productData = await this.prisma.product.findMany({
+        where: {
+          OR: keywords.length > 0 ? keywords.map(kw => ({ name: { contains: kw, mode: 'insensitive' } })) : undefined
+        },
+        include: { store: true },
+        take: 3
+      });
+
+      // Busca de Lojas Próximas para mapeamento (Urban Awareness)
+      const storeData = await this.prisma.store.findMany({
+        take: 5,
+        select: { id: true, name: true, category: true, latitude: true, longitude: true }
+      });
+
+      const reply = await this.groqService.getChatCompletion(
+        dto.message,
+        userProfile,
+        storeData,
+        productData,
+        history.reverse()
+      );
 
       // Save assistant message
       await this.prisma.chatMessage.create({
