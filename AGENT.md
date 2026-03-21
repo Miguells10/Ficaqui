@@ -35,3 +35,8 @@
    npm run dev
    ```
    * O layout interativo abrirá no localhost da porta `5173`.
+
+## 🐛 LOG DE ERROS CONHECIDOS (SOLUCIONADOS NO MVP)
+- **Problem:** Erro `Invalid STUDIO_EMBED_BUILD` ao rodar Prisma Studio nativamente no Windows (Powershell/CMD).
+- **Cause:** Mismatch de binários/engines entre a versão do Prisma CLI e o Studio Web em ambientes Windows com certas versões de Node.
+- **Solution:** Orquestrar o Studio via Docker (`docker exec`) usando o ambiente Linux isolado do contêiner, garantindo consistência total. (Comando mapeado no README).

@@ -59,9 +59,13 @@ cd backend
 ```
 
 #### A. Inspecionar e Cadastrar Dados Graficamente (Prisma Studio)
-Abra uma interface bonita no navegador para cadastrar produtos, saldos de usuários e estoques manualmente:
+Abra uma interface bonita no navegador para cadastrar produtos, saldos de usuários e estoques manualmente. 
+
+> [!TIP]
+> **Dica de Senior:** Para evitar erros de ambiente no Windows (`STUDIO_EMBED_BUILD`), rode o Studio direto pelo Docker:
+
 ```bash
-npx prisma studio
+docker exec -it ficaqui_backend npx prisma studio --browser none --port 5555
 ```
 > *(Abra http://localhost:5555 para visualizar. Ideal para adicionar as Panelas da "Loja do Seu João" em tempo real na aba Products).*
 
