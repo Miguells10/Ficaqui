@@ -1,80 +1,59 @@
 # Ficaqui MVP 🚀
 
-O Ficaqui MVP foi projetado como um Monorepo **Mobile-First** escalável. A infraestrutura possui separação nativa de Frontend (React + Vite), Backend (NestJS + Prisma ORM) e Banco de Dados (PostgreSQL via Docker).
+O Ficaqui MVP foi projetado como um Monorepo **Mobile-First** escalável. A infraestrutura possui separação nativa de Frontend (React + Vite), Backend (NestJS + Prisma ORM) e Banco de Dados (PostgreSQL).
+
+Tudo foi orquestrado para rodar com **apenas um único comando via Docker Compose**!
 
 ## Requisitos Iniciais
-
-- Node.js (v18 ou mais recente)
-- Docker Desktop e Docker Compose (Apenas para levantar o Postgres via um comando simples)
-- Uma [chave da API do Groq](https://console.groq.com/keys) (Opcional, se você não setá-la, o app responde usando o modo simulador).
+- Docker Desktop (e Docker Compose) instalados.
+- Uma [chave da API do Groq](https://console.groq.com/keys) (Opcional. Sem ela, o chat funciona em modo Offline/Simulação no backend).
 
 ---
 
-## 🏗️ Como Rodar o Ficaqui (Passo a Passo)
+## 🏗️ Como Subir Todos os Serviços de Uma Vez
 
-### 1️⃣ Inicializar o Banco de Dados (PostgreSQL)
-
-O nosso Docker Compose vai gerenciar o banco pesado pra você não precisar instalar MySQL/Postgres localmente do zero.
+Se você possui o Docker rodando na sua máquina, a inicialização ocorre de forma automática. O Docker Compose vai:
+1. Baixar e ligar o PostgreSQL.
+2. Executar as dependências do Backend, gerar o Prisma Client e aplicar as tabelas (CheckIn, ChatMessage, User).
+3. Levantar o Frontend e amarrá-lo ao servidor da API.
 
 Abra o terminal **na raiz do seu projeto (`Ficaqui/`)** e rode:
 
 ```bash
-docker-compose up -d db
+docker-compose up --build -d
 ```
 
-> Isso fará o download da imagem limpa do Postgres e deixará o banco rodando silenciosamente na porta `5432` do seu computador.
+> **Dica:** O `--build` garante que suas imagens Docker leiam o código-fonte mais recente. O `-d` libera seu terminal para que os processos rodem limpos em background!
 
 ---
 
-### 2️⃣ Inicializar a API Backend (NestJS + Swagger)
+## 🎯 Onde Acessar Cada App?
 
-O Backend Ficaqui contém a documentação da API, Endpoints de Check-in em rotas sustentáveis e a integração de Gamificação de Moedas (CentroCoins) + Conexão LLM Segura.
+Após o comando acima terminar (leva 1 minuto na primeira vez), tudo estará ao vivo:
 
-1. No terminal aberto, navegue até a pasta do backend:
-   ```bash
-   cd backend
-   ```
-2. Instale as dependências:
-   ```bash
-   npm install
-   ```
-3. Crie um arquivo chamado exatamente **`.env`** no diretório `backend/` (você pode se inspirar no arquivo `backend/.env example` que você abriu agora mesmo) e adicione as variáveis:
-   ```env
-   # Como o banco de dados Docker abriu a porta para seu SO, use localhost:
-   DATABASE_URL="postgresql://ficaqui:ficaqui_password@localhost:5432/ficaqui_db?schema=public"
-   
-   # Insira aqui a sua Key do Groq para o Chat ser real (Opcional):
-   GROQ_API_KEY="gsk_SuaChaveAqui"
-   ```
-   *(Caso opte por não configurar a chave do Groq, o chat utilizará o simulador interno automático recomendando praças em Aracaju para você não passar vergonha numa apresentação sem internet).*
+### 📱 1. O App Ficaqui (Frontend React + Gamificação)
+Acesse pelo seu navegador:
+👉 [http://localhost:5173](http://localhost:5173)
 
-4. Sincronize o Banco (este comando lê sua tabela Prisma e força no Docker pra você de primeira viagem):
-   ```bash
-   npx prisma db push
-   ```
-5. Inicie o servidor do Backend API:
-   ```bash
-   npm run start:dev
-   ```
+### 🔥 2. Documentação da API (NestJS Swagger)
+Visualize os endpoints disponíveis e teste o banco de dados graficamente:
+👉 [http://localhost:3000/api](http://localhost:3000/api)
 
-✅ Seu backend estará rodando 100% no link `http://localhost:3000`.  
-🔥 Para acessar e testar o **Swagger (Documentação da API do Ficaqui)**, vá no seu navegador em: [`http://localhost:3000/api`](http://localhost:3000/api)
+### 🗄️ 3. O Banco de Dados (Postgres)
+Ele roda no host local na porta `5432`.
+Credentials: 
+* User: `ficaqui`
+* Password: `ficaqui_password`
+* DB: `ficaqui_db`
 
 ---
 
-### 3️⃣ Inicializar o App Frontend (Vite/React Gamificado)
+## ⚙️ E a Chave do Groq/Llama? (Opcional)
 
-A UI do usuário final. Agora robusta, conectada a API e sem nenhuma lógica de LLM vulnerável em código fonte web. 
+Se quiser usar a IA real da Groq, basta abrir o seu terminal *antes* de rodar o compose e exportar a variável, ou criar um arquivo `.env` puro **na raiz do seu projeto** (junto ao docker-compose.yml) com a linha:
 
-1. Abra um **NOVO** terminal (para não fechar a janela preta rodando seu backend em `start:dev`).
-2. Vá até a pasta do frontend e instale:
-   ```bash
-   cd frontend
-   npm install
-   ```
-3. Suba o servidor Web de testes do app (Vite):
-   ```bash
-   npm run dev
-   ```
+```env
+GROQ_API_KEY="gsk_SuaChaveDaAPI"
+```
 
-✅ Seu MVP abrirá. Clique na URL informada no log (geralmente `http://localhost:5173`) e teste a interface inteira! Todo o sistema reativo (QR Code, Chat Llama, e Check in do Perfil do seu usuário) funcionará conectado aos endpoints.
+O `docker-compose` puxará essa variável automaticamente e a inserirá direto no container blindado do seu Backend NestJS. Mágica pura!

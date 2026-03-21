@@ -24,9 +24,12 @@ services:
       - '3000:3000'
     environment:
       - DATABASE_URL=postgresql://ficaqui:ficaqui_password@db:5432/ficaqui_db?schema=public
-      - GROQ_API_KEY=${VITE_GROQ_API_KEY:-}
+      # Lê a chave do seu ambiente/SO (se existir), ou env local:
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
     depends_on:
       - db
+    # Garante que o banco seja sincronizado e o Client gerado antes do app subir
+    command: /bin/sh -c "npx prisma generate && npx prisma db push && npm run start:dev"
     volumes:
       - ./backend:/usr/src/app
       - /usr/src/app/node_modules
@@ -40,6 +43,8 @@ services:
       - '5173:5173'
     environment:
       - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - backend
     volumes:
       - ./frontend:/app
       - /app/node_modules
