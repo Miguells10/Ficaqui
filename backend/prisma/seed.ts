@@ -5,6 +5,9 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding B2G Buildings Intelligence...');
   
+  // Limpa as propriedades para evitar duplicatas em re-seeds do Docker
+  await prisma.building.deleteMany();
+  
   await prisma.building.create({
     data: {
       address: 'Praça Fausto Cardoso, 12',
