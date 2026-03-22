@@ -1,8 +1,9 @@
-import { Controller, Post, Get, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Get, Body, Param, HttpException, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PrismaService } from './prisma.service';
 import { GroqService } from './groq.service';
 import { ChatDto, CheckInDto } from './app.dto';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 @ApiTags('Ficaqui API')
 @Controller()
@@ -13,30 +14,31 @@ export class AppController {
   ) {}
 
   @Post('chat')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Enviar mensagem para o Chat assistente LLM' })
   @ApiResponse({ status: 201, description: 'Retorna a resposta do assistente (Llama/Groq) e persiste no Postgres.' })
-  async handleChat(@Body() dto: ChatDto) {
+  async handleChat(@Body() dto: ChatDto, @Request() req) {
     try {
-      // Create user context silently if missing for MVP demonstration
-      await this.ensureUserExists(dto.userId);
+      const realUserId = req.user.id;
 
       // Save user message
       await this.prisma.chatMessage.create({
         data: {
           content: dto.message,
           role: 'user',
-          userId: dto.userId
+          userId: realUserId
         }
       });
 
       // Llama RAG Context Fetching
       const userProfile = await this.prisma.user.findUnique({
-        where: { id: dto.userId },
-        select: { id: true, name: true, centroCoins: true }
+        where: { id: realUserId },
+        select: { id: true, name: true, centrocoinsBalance: true, role: true }
       });
 
       const history = await this.prisma.chatMessage.findMany({
-        where: { userId: dto.userId },
+        where: { userId: realUserId },
         take: 5,
         orderBy: { createdAt: 'desc' },
         select: { role: true, content: true }
@@ -71,7 +73,7 @@ export class AppController {
         data: {
           content: reply,
           role: 'assistant',
-          userId: dto.userId
+          userId: realUserId
         }
       });
 
@@ -83,26 +85,40 @@ export class AppController {
   }
 
   @Post('checkin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Registrar Check-in no mapa pelo QR Code' })
   @ApiResponse({ status: 201, description: 'Gamificação: Realiza Check-in e credita moedas CentroCoins.' })
-  async checkIn(@Body() dto: CheckInDto) {
+  async checkIn(@Body() dto: CheckInDto, @Request() req) {
     try {
-      await this.ensureUserExists(dto.userId);
+      const realUserId = req.user.id;
 
+      // Create CheckIn record
       await this.prisma.checkIn.create({
         data: {
           location: dto.location,
           coinsEarned: dto.coinsEarned,
-          userId: dto.userId
+          userId: realUserId
         }
       });
 
-      const user = await this.prisma.user.update({
-        where: { id: dto.userId },
-        data: { centroCoins: { increment: dto.coinsEarned } }
-      });
+      // B2G Audit: Create Transaction and update balance safely in a Prisma Transaction
+      const [transaction, user] = await this.prisma.$transaction([
+        this.prisma.transaction.create({
+          data: {
+            userId: realUserId,
+            amount: dto.coinsEarned,
+            description: `Check-in em ${dto.location}`,
+            type: 'EARN'
+          }
+        }),
+        this.prisma.user.update({
+          where: { id: realUserId },
+          data: { centrocoinsBalance: { increment: dto.coinsEarned } }
+        })
+      ]);
 
-      return { success: true, totalCoins: user.centroCoins };
+      return { success: true, totalCoins: user.centrocoinsBalance };
     } catch (e) {
       throw new HttpException('Erro ao realizar Check-in', HttpStatus.BAD_REQUEST);
     }
@@ -112,18 +128,10 @@ export class AppController {
   @ApiOperation({ summary: 'Obter saldo de moedas do usuário pelo ID' })
   async getUser(@Param('id') userId: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
+      select: { id: true, name: true, centrocoinsBalance: true }
     });
     if (!user) throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     return user;
-  }
-
-  private async ensureUserExists(id: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) {
-      await this.prisma.user.create({
-        data: { id, name: 'Usuário Convidado', centroCoins: 150 }
-      });
-    }
   }
 }

@@ -7,14 +7,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  CITIZEN
+  GOV_ADMIN
+}
+
+enum TransactionType {
+  EARN
+  SPEND
+}
+
 model User {
-  id          String        @id @default(uuid())
-  name        String
-  centroCoins Int           @default(0)
-  checkIns    CheckIn[]
-  messages    ChatMessage[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                 String        @id @default(uuid())
+  name               String
+  email              String        @unique
+  passwordHash       String        @map("password_hash")
+  role               Role          @default(CITIZEN)
+  centrocoinsBalance Int           @default(0) @map("centrocoins_balance")
+  transactions       Transaction[]
+  checkIns           CheckIn[]
+  messages           ChatMessage[]
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  userId      String          @map("user_id")
+  user        User            @relation(fields: [userId], references: [id])
+  amount      Int
+  description String
+  type        TransactionType
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  @@map("transactions")
 }
 
 model CheckIn {
@@ -54,4 +82,31 @@ model Product {
   storeId     String
   store       Store    @relation(fields: [storeId], references: [id])
   createdAt   DateTime @default(now())
+}
+
+enum BuildingStatus {
+  ABANDONED
+  COMMERCIAL_ONLY
+  MIXED_USE_POTENTIAL
+  RETROFITTED
+}
+
+enum OwnerType {
+  GOVERNMENT
+  PRIVATE
+}
+
+model Building {
+  id                 Int            @id @default(autoincrement())
+  address            String
+  status             BuildingStatus
+  ownerType          OwnerType
+  taxDebt            Float          @map("tax_debt")
+  footTrafficScore   Int            @map("foot_traffic_score")
+  latitude           Float          
+  longitude          Float          
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  @@map("buildings")
 }

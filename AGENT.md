@@ -1,42 +1,41 @@
-# Ficaqui AI - AGENT LOGS
+# Ficaqui AI - B2G Urban Intelligence Platform
 
-## Decisões Tomadas com Base nas Skills
+> **Project Vision:** Ficaqui is a B2G (Business to Government) Urban Intelligence SaaS. It uses AI to guide citizens through downtown Aracaju while generating real-time heatmaps and data for the government to implement data-driven urban public policies (e.g., tax incentives, urban revitalization).
 
-### 📱 `@[/app-builder]` & `@[/architecture]`
-- **Monorepo Structure:** Através do Socratic Gate e aprovação, migramos a arquitetura para um sistema Monorepo (`/frontend` e `/backend`) visando organização corporativa.
-- **Docker Orchestration:** Adicionamos um `docker-compose.yml` que provisiona o PostgreSQL (`db`) , e prepara contêineres para backend e frontend.
-- **Backend Robusto:** Escolhido o sólido **NestJS** com **Prisma ORM** por ter segurança de escopo (tipagem absoluta) e velocidade incrível na hora de estruturar tabelas de MVP.
+## System Architecture
 
-### 🧠 `@[/api-patterns]`
-- **Swagger Documentation:** Toda a documentação OpenAPI gerada automaticamente via Decorators nos Controllers, disponível na rota `/api`.
-- **Validação de Inputs:** Utilização do `ValidationPipe` do NestJS pareado ao `class-validator` nos novos Data Transfer Objects (`ChatDto`, `CheckInDto`).
-- **Data Persistence:** O Llama (via Groq API) não é mais feito do lado cliente por questão de segurança. Agora persiste as mensagens enviadas e a resposta da IA de forma segura na tabela `ChatMessage` no DB, interligado ao UUID do `User`.
+### 📱 Monorepo Structure
+- **Backend (`/backend`)**: Robust Enterprise API built with **NestJS** and **Prisma ORM**. Implements strict RBAC (Role-Based Access Control) to separate `CITIZEN` and `GOV_ADMIN` interactions, ensuring deep data integrity for the government dashboard.
+- **Frontend (`/frontend`)**: Dynamic Single-Page Application utilizing **React, Vite, TypeScript, and Tailwind CSS**. Delivers an accessible, tap-friendly experience for citizens and a rich data visualization dashboard for government officials.
+- **Orchestration**: Managed via `docker-compose.yml` to provision the PostgreSQL database (`db`) and prepare containers for scaling.
 
-## Como inicializar o Ecossistema Ficaqui
+### 🧠 Core Modules & Patterns
+- **Authentication & RBAC**: A solid foundation built on JWT (JSON Web Tokens). Real users replace any previous mocked states. Citizens are securely authenticated to earn CentroCoins, while Government Admins are verified before accessing sensitive heatmaps. 🔥 **Status: 100% Implementado e Funcional (Guards ativos, endpoints /auth/register e /auth/login injetados no NestJS)**.
+- **Auditable Gamification**: CentroCoins are managed via a robust double-entry `Transaction` ledger in PostgreSQL, ensuring data integrity (no race conditions) e atualizações seguras via Transações do Prisma.
+- **Urban AI (Groq + Llama 3)**: The Conversational AI is securely handled by the backend. It accesses real-time user profiles, location, and commerce data to generate tailored routes and recommendations, while persisting interactions to feed the intelligence dashboard.
 
-1. **Subir Banco de Dados via Docker**
-   Abra o terminal na raiz do projeto e crie a instância do Postgres:
+## Running the Ecosystem
+
+1. **Database Setup (Docker)**
+   Start the PostgreSQL instance:
    ```bash
    docker-compose up -d db
    ```
-2. **Configuração do Backend (Nest.js)**
-   Crie um `.env` em `/backend` com a sua `GROQ_API_KEY=xxx`
+
+2. **Backend Engine (Nest.js)**
+   Setup your `.env` dynamically with the `GROQ_API_KEY` and `JWT_SECRET`:
    ```bash
    cd backend
    npm install
-   npx prisma db push
+   npx prisma migrate dev
    npm run start:dev
    ```
-   * 🔥 O Swagger estará lindamente disponível em: `http://localhost:3000/api`
-3. **Configuração do Frontend (Vite/React)**
+   * Swagger Documentation available at: `http://localhost:3000/api`
+
+3. **Frontend Dashboard (Vite/React)**
    ```bash
    cd frontend
    npm install
    npm run dev
    ```
-   * O layout interativo abrirá no localhost da porta `5173`.
-
-## 🐛 LOG DE ERROS CONHECIDOS (SOLUCIONADOS NO MVP)
-- **Problem:** Erro `Invalid STUDIO_EMBED_BUILD` ao rodar Prisma Studio nativamente no Windows (Powershell/CMD).
-- **Cause:** Mismatch de binários/engines entre a versão do Prisma CLI e o Studio Web em ambientes Windows com certas versões de Node.
-- **Solution:** Orquestrar o Studio via Docker (`docker exec`) usando o ambiente Linux isolado do contêiner, garantindo consistência total. (Comando mapeado no README).
+   * The platform will be available on port `5173`.

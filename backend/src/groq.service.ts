@@ -62,4 +62,45 @@ Sua saída deve ser EXCLUSIVAMENTE um objeto JSON válido no formato:
       return "Desculpe, meu sistema está indisponível no momento.";
     }
   }
+
+  async getAdminInsights(opportunities: any): Promise<string> {
+    const systemPrompt = `Você atua como o 'Cérebro' do projeto Ficaqui, uma IA de Inteligência Urbana focada em orientar políticas públicas para a revitalização do Centro de Aracaju.
+Seu objetivo é analisar os dados do Dashboard (fluxo de pessoas, prédios abandonados, buscas por comércio) e sugerir ações baseadas nestes 3 pilares:
+
+O Fundo Ficaqui: Sugerir concessões de prédios públicos abandonados para a iniciativa privada transformá-los em Âncoras de Atração (Mercados Gastronômicos, Hubs de Inovação) com redução de impostos.
+
+Uso Misto e Moradia: Identificar prédios comerciais vazios com potencial para Uso Misto (Lojas no térreo + Moradia nos andares superiores). Sugerir Isenção de IPTU e redução de ISS para as construtoras que fizerem o retrofit. Lembre-se: 'Quem mora no Centro, consome no Centro'.
+
+Formalização e Efeito Âncora: Sugerir Alvará Expresso para ambulantes e isenções fiscais para atrair Grandes Empresas para áreas com alto fluxo, criando novos polos de atração em desertos comerciais.`;
+
+    const userMessage = `Por favor, analise as seguintes oportunidades mapeadas e aplique os 3 pilares para sugerir estratégias: \n\n${JSON.stringify(opportunities, null, 2)}`;
+
+    if (!this.apiKey) {
+      return JSON.stringify({ 
+        insight: "Simulação de Insight Llama: Sugestão de Retrofit para uso misto nos ativos mapeados e incentivos perimetrais no Centro." 
+      });
+    }
+
+    try {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "llama3-8b-8192",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage }
+          ]
+        })
+      });
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (e) {
+      this.logger.error('API Error', e);
+      return "Sistema Groq indisponível no momento.";
+    }
+  }
 }

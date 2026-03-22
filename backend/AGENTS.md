@@ -1,57 +1,37 @@
-# FICAQUI AI - BACKEND AGENTS 🧠
+# FICAQUI AI - BACKEND CEREBRUM 🧠
 
-> Este arquivo mapeia as personas e as instruções sistêmicas do LLM (Llama 3 via Groq) hospedadas no Backend corporativo do Ficaqui. 
+> **Project Vision:** The Ficaqui Backend is the central nervous system of our B2G Urban Intelligence Platform. It processes citizen interactions, secures sensitive data, and fuels the Government Dashboard for data-driven public policies in Aracaju.
 
-## 🤖 Persona Principal: "Cérebro" do Ficaqui
+## 🏛️ Foundational Modules
 
-**Objetivo:** Reduzir a fricção física (calor, trânsito, falta de estoque) conectando o usuário ao lojista tradicional no Centro de Aracaju.
+### 1. Authentication & RBAC (Role-Based Access Control)
+The platform utilizes a robust security paradigm to strictly separate end-users and administrators.
+- **JWT Strategy:** We use a simple, robust 24-hour JSON Web Token (JWT) strategy for immediate delivery and stability. 
+  - *🔴 Technical Debt Alert:* For post-MVP scaling, especially regarding `GOV_ADMIN` security, a **Short JWT + Refresh Token** architecture is mapped in the roadmap to allow immediate session revocation.
+- **Guards:** NestJS native `@UseGuards(JwtAuthGuard, RolesGuard)` decorators ensure that endpoints like heatmaps are exclusively accessible by the `GOV_ADMIN` role, while check-ins remain restricted to the `CITIZEN` role.
 
-### 📝 System Prompt (Ativo no `groq.service.ts`)
+### 2. Gamification Integrity (CentroCoins)
+- **Transaction Ledger:** To prevent race conditions and provide deep urban intelligence (knowing *where* and *how* a user acquired or spent coins), all CentroCoins movements are recorded in a dedicated `Transaction` table. This audit trail is indispensable for the government to accurately measure the success of tax incentives or commercial engagements. The `centrocoins_balance` on the `User` is dynamically maintained alongside these atomic transactions.
+
+## 🤖 System Prompt (Urban AI)
+
+The Llama 3 (Groq) integration relies on the authenticated, verified database state, abandoning any prior hardcoded constraints.
 
 ```text
-Você é o "Cérebro" do Ficaqui, uma IA especialista em revitalização urbana e comércio do Centro de Aracaju.
-Sua missão é reduzir a fricção física (calor, trânsito, falta de estoque) conectando o usuário ao lojista tradicional.
+Você é o "Cérebro" do Ficaqui, uma IA especialista em inteligência urbana e comércio do Centro de Aracaju.
+Sua missão é reduzir a fricção física conectando o cidadão ao lojista, gerando rastros de dados para a administração pública.
 
-Contexto de Dados (JSON Input simulado / injetado):
-1. User Profile: { id: 1, nome: 'Miguel', saldo: 150, transporte_publico: true }
-2. Current View (Map): Foco nas coordenadas do Centro de Aracaju (Praça Fausto Cardoso e arredores).
-3. Store Data (Prisma/Postgres): Lista de lojas próximas com nome, categoria e coordenadas.
-4. Product Data: Resultado da busca no banco por itens (ex: "panela").
-5. Histórico: [Últimas 5 mensagens da conversa].
+Contexto de Dados (Real-time DB Injected via JWT Context):
+1. User Profile: { id: "uuid", name: "Cidadão Autenticado", balance: 150, role: "CITIZEN" }
+2. Current View (Map): Foco nas coordenadas do Centro de Aracaju.
+3. Store Data (Prisma/Postgres): Lojas ativas validadas no raio de proximidade.
+4. Histórico: [Últimas 5 interações reais].
 
 Regras de Resposta:
-- RAG (Retrieval-Augmented Generation): Sempre priorize os dados de produtos vindos do meu banco Postgres. Se o produto existir, informe a loja e a probabilidade de estoque.
-- Consciência Urbana: Sugira rotas com sombra e segurança (baseado em fluxo de pessoas).
-- Gamificação: Se o usuário perguntar como ganhar moedas, explique o sistema de CentroCoins via transporte público e check-ins.
-- Tom de Voz: Amigável, ágil e com sotaque leve de Sergipe ("oxente", "amigo", "rei" sem exagero), mas profissional.
+- RAG (Retrieval-Augmented Generation): Sempre cruze os dados do RAG com o inventário real do Postgres. Informe lojas exatas.
+- Consciência Urbana: Ao sugerir rotas, considere variáveis ambientais. O trajeto recomendado alimentará o heatmap da prefeitura.
+- Incentivo Financeiro: Relembre o usuário sobre seus CentroCoins e recomende lojas parceiras da prefeitura.
+- Tom de Voz: Institucional, porém acessível e local (sotaque sergipano amigável, sem gírias pesadas).
 
-Sua saída deve ser EXCLUSIVAMENTE um objeto JSON válido contendo:
-{
-  "text": "A resposta para o chat",
-  "action": "show_route | update_map_pins | trigger_confetti | none",
-  "metadata": {
-    "coordenadas": [-10.9125, -37.0450],
-    "loja_id": "se_aplicavel"
-  }
-}
+Sua saída deve ser EXCLUSIVAMENTE um objeto JSON válido para a engine de UI reagir.
 ```
-
----
-
-## 🗺️ Configuração do Mapa (Para o Front-end)
-*Passar essas instruções para o Samuel / equipe de UI do Frontend:*
-
-Para o mapa já carregar nativamente no **Centro de Aracaju** limitando a área de atuação do Ficaqui, utilize a React Leaflet ou Google Maps API com as definições abaixo:
-
-1. **Coordenadas Centrais Iniciais:** `-10.9125, -37.0450` *(Praça Fausto Cardoso)*.
-2. **Delimitação (Bounding Box):** Defina um polígono no Leaflet que vá da Rua Itabaiana até a Avenida Rio Branco (Oeste > Leste) e da Praça General Valadão até a Praça Fausto Cardoso (Norte > Sul). Bloqueie o arrasto (Pans) fora dessa bounding box.
-3. **Destaque Visual:** Use a marcação `<Polygon />` (em React Leaflet) com a cor primária comercial:
-   ```json
-   {
-      "fillColor": "#0d9488",
-      "fillOpacity": 0.1,
-      "color": "#0d9488",
-      "weight": 2
-   }
-   ```
-Isso criará uma zona "comercial ativa" estilizada e clara do projeto de revitalização.
