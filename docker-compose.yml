@@ -28,7 +28,7 @@ services:
     depends_on:
       - db
     # Garante que o banco seja sincronizado, hidratado e o Client gerado antes do app subir
-    command: /bin/sh -c "npx prisma generate && npx prisma db push --accept-data-loss && npm run prisma:seed && npm run start:dev"
+    command: /bin/sh -c "npx prisma generate && npx prisma db push --accept-data-loss && npx prisma db seed && npm run start:dev"
     volumes:
       - ./backend:/usr/src/app
       - /usr/src/app/node_modules

@@ -18,7 +18,7 @@ export class AppController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Enviar mensagem para o Chat assistente LLM' })
   @ApiResponse({ status: 201, description: 'Retorna a resposta do assistente (Llama/Groq) e persiste no Postgres.' })
-  async handleChat(@Body() dto: ChatDto, @Request() req) {
+  async handleChat(@Body() dto: ChatDto, @Request() req: any) {
     try {
       const realUserId = req.user.id;
 
@@ -89,7 +89,7 @@ export class AppController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Registrar Check-in no mapa pelo QR Code' })
   @ApiResponse({ status: 201, description: 'Gamificação: Realiza Check-in e credita moedas CentroCoins.' })
-  async checkIn(@Body() dto: CheckInDto, @Request() req) {
+  async checkIn(@Body() dto: CheckInDto, @Request() req: any) {
     try {
       const realUserId = req.user.id;
 
